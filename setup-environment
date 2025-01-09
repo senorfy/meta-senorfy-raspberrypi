@@ -1,0 +1,154 @@
+#!/usr/bin/env bash -x
+
+# 工程文件夹目录
+TOP_DIR="$(readlink -f "$( dirname "${BASH_SOURCE[0]}" )/..")"
+# 当前脚本目录
+CURRENT_DIR="$(readlink -f "$( dirname "${BASH_SOURCE[0]}" )")"
+
+# 设置环境变量
+function setup_env(){
+	TARGET_MACHINE=""
+}
+
+print_help()
+{
+	printf "ERROR_MSG : $ERROR_MSG"
+
+cat << EOL
+Usage: source setup-environment [OPTION]...
+
+Options:
+     --help                   display this help and exit
+EOL
+
+}
+
+function parse_args(){
+	DO_HELP=0
+	if [ ${DO_HELP} -eq 1 ] ;then 
+        print_help
+        exit 1  
+    fi
+}
+
+# note: adapted from meta-rdk/setup-environment
+function choose_target_machine() {
+  _options="$@"
+  _options_count=`echo ${_options} | wc -w`
+
+  if [ $_options_count -lt 1 ]; then
+    echo "ERROR: no TARGET_MACHINEs available!"
+  elif [ $_options_count -eq 1  ]; then
+    TARGET_MACHINE=$(echo $_options | sed 's|.*/\(.*\)\.conf|\1|')
+  else
+    while [ -z "$TARGET_MACHINE" ]; do
+      PS3="Please enter your choice of machine [1..${_options_count}]: "
+      select opt in `echo $_options`
+      do
+          if [ -z "$opt" ]; then
+              echo "Invalid choice"
+          else
+              TARGET_MACHINE=$(echo $opt | sed 's|.*/\(.*\)\.conf|\1|')
+              break;
+          fi
+      done
+      unset PS3 _options_count _options
+    done
+  fi
+}
+
+# Example usage:
+#  choose_target_machine_from_layers meta-1 meta-2 meta-3
+choose_target_machine_from_layers() {
+    choose_target_machine $(for layer in $@; do ls -1 $layer/conf/machine/*.conf 2>/dev/null; done)
+}
+
+function lunch()
+{
+	if [ -d ${TOP_DIR}/poky ]; then
+      export YOCTO_LAYER_DIR=poky
+    else
+      echo "ERROR: poky meta layer is missing!"
+      return 1
+    fi
+	
+	choose_target_machine_from_layers meta-raspberrypi
+	
+	BUILD_DIR=${TOP_DIR}/build.${TARGET_MACHINE}
+
+	TEMPLATECONF=${CURRENT_DIR}/conf source ${YOCTO_LAYER_DIR}/oe-init-build-env ${BUILD_DIR} > /dev/null
+}
+
+function add_bblayer() {
+    if [ $(grep '^BBLAYERS' conf/bblayers.conf | grep -c "$1[^-]") -eq 0 -a -d  $TOP_DIR/$1 ]; then
+        cat >> conf/bblayers.conf <<EOF
+BBLAYERS += "${TOP_DIR}/$1"
+EOF
+    fi
+}
+
+remove_bblayer() {
+    if [ $(grep '^BBLAYERS' conf/bblayers.conf | grep -c "$1[^-]") -ne 0 ]; then
+        cat >> conf/bblayers.conf <<EOF
+BBLAYERS -= "\${TOP_DIR}/$1"
+EOF
+    fi
+}
+
+function custom_bblayers_conf()
+{
+    add_bblayer meta-raspberrypi
+	add_bblayer meta-senorfy-raspberrypi
+}
+
+function custom_local_conf()
+{
+	# 替代机器配置
+	sed -e "s/##MACHINE##/${TARGET_MACHINE}/g" -i conf/local.conf
+}
+
+#function custom_auto_conf()
+#{
+#	echo "custom_auto_conf"
+#}
+
+function custom_conf()
+{
+    custom_bblayers_conf
+    custom_local_conf
+#    custom_auto_conf
+}
+
+function show_info()
+{
+
+cat <<EOF
+===============================================================================================
+
+ Build with:
+
+   bitbake core-image-base
+
+===============================================================================================
+EOF
+
+}
+
+function main(){
+
+    setup_env
+    
+    parse_args $@
+	
+	lunch
+	
+	custom_conf
+	
+	show_info
+
+    return 0
+}
+
+main $@
+
+return $?

@@ -1,0 +1,12 @@
+# POKY_BBLAYERS_CONF_VERSION is increased each time build/conf/bblayers.conf
+# changes incompatibly
+POKY_BBLAYERS_CONF_VERSION = "2"
+
+BBPATH = "${TOPDIR}"
+BBFILES ?= ""
+
+BBLAYERS ?= " \
+  /home/DIGITAL/sdt16414/raspberry-yocto/poky/meta \
+  /home/DIGITAL/sdt16414/raspberry-yocto/poky/meta-poky \
+  /home/DIGITAL/sdt16414/raspberry-yocto/poky/meta-yocto-bsp \
+  "
