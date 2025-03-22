@@ -9,7 +9,7 @@ CURRENT_DIR="$(readlink -f "$( dirname "${BASH_SOURCE[0]}" )")"
 function setup_env(){
 	TARGET_MACHINE=""
 }
-
+# 打印帮助参数
 print_help()
 {
 	printf "ERROR_MSG : $ERROR_MSG"
@@ -22,7 +22,7 @@ Options:
 EOL
 
 }
-
+# 解析参数
 function parse_args(){
 	DO_HELP=0
 	if [ ${DO_HELP} -eq 1 ] ;then 
@@ -76,7 +76,8 @@ function lunch()
 	
 	BUILD_DIR=${TOP_DIR}/build.${TARGET_MACHINE}
 
-	TEMPLATECONF=${CURRENT_DIR}/conf source ${YOCTO_LAYER_DIR}/oe-init-build-env ${BUILD_DIR} > /dev/null
+	# 配置模板文件，并运行配置
+	TEMPLATECONF=${CURRENT_DIR}/poky_conf source ${YOCTO_LAYER_DIR}/oe-init-build-env ${BUILD_DIR} > /dev/null
 }
 
 function add_bblayer() {
@@ -105,6 +106,7 @@ function custom_local_conf()
 {
 	# 替代机器配置
 	sed -e "s/##MACHINE##/${TARGET_MACHINE}/g" -i conf/local.conf
+	sed -e "s/##OEROOT##/${TOP_DIR}/g" -i conf/bblayers.conf
 }
 
 #function custom_auto_conf()
