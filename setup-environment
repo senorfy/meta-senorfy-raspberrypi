@@ -72,7 +72,8 @@ function lunch()
       return 1
     fi
 	
-	choose_target_machine_from_layers meta-raspberrypi
+	# 选择meta层的机器文件
+	choose_target_machine_from_layers meta-senorfy-raspberrypi
 	
 	BUILD_DIR=${TOP_DIR}/build.${TARGET_MACHINE}
 
